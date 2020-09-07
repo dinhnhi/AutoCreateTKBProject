@@ -1,0 +1,25 @@
+Mục tiêu: Phần mềm có chức năng tự động tạo tất cả
+    TKB phù hợp với danh sách môn học mà người dùng truyền vào
+
+Ý tưởng: brute force toàn bộ các khả năng có thể xảy ra
+
+Ngày bắt đầu Project: 10/8/2020
+ - 1-.8.2020: Thiết kế class(Đã hoàn thành)
+ - 11.8.2020:  Code( chưa hoàn thành)
+                Cần tìm hiểu về Dictionary, JTable, JMenuBar, JMenu và chức năng giao tập hợp trong java
+ - 13.8.2020:   hoàn thành hàm tìm tkb, vẽ được bản
+                Trước tiên cần hoàn thành chức năng đọc file excel
+                Cần chức năng phân biệt các chương trình đào tạo: CLC, TN, ĐT // => xem chuong trinh dao tao theo tung nam
+                                            ngành đạo tào       : ATCL, ANTN, ANTT, CNCL, CTTT, HTCL,
+                                                                  MTCL, MMCL, PMCL, KHCL, KHBC,  TMCL
+ 14.8.2020:     Thực hiện được chức năng phân biệt chương trình/ngành đào tạo nhưng chưa có thời gian hoàn thành hết.
+                Ngày mai tiến hành chia lại class ở class Main.
+                Cần chức năng lọc những TKB tối ưu cho người dùng, VD: TKB có nhiều buổi trống nhất, TKB có nhiều buổi trống vào các tiêt 67890/12345
+                                                                       TKB trống vào những ngày hoặc những buổi được chỉ định.
+
+15.08.2020:
+                Đã hoàn thành chức năng phân biệt chương trình/ngành đào tạo
+                Đã điều chỉnh class đơn giản hơn
+                Ngày mai cần thực hiện chức năng lọc TKB
+
+Mục tiêu hoàn thành: 30/8/2020
