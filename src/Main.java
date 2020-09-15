@@ -2,6 +2,8 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -18,7 +20,7 @@ public class Main {
     Map sourceMap;
 
     XSSFWorkbook workbook;
-    ArrayList<String> hauToList; // khong nho tieng anh la chu nao
+    ArrayList<String> suffixChosenList; // khong nho tieng anh la chu nao
     File idSubjectFile;
     File sourceExcelFile;
 
@@ -81,7 +83,7 @@ public class Main {
         }
         printInfo("Done load your subject file");
     }
-    private void loadExcelSourceFile(File file) throws IOException { // can optomize
+    private void loadExcelSourceFile(File file) throws IOException {
         printInfo("Start Load Source!");
 
         FileInputStream input = new FileInputStream(file);
@@ -93,17 +95,21 @@ public class Main {
         // readWorkSheetLT phải gọi trước readWorkSheetTH
         // vì danh sách lớp học thực hành lấy từ hàm readWorkSheetTH
         // dựa trên danh sách lớp học lý thuyết lấy từ hàm readWorkSheetLT
-        readWorkSheetLT(workbook, nameSheetLT);
-        readWorkSheetTH(workbook, nameSheetTH);
+        //readWorkSheetLT(workbook, nameSheetLT);
+        readWorkSheetLT(workbook.getSheet("TKB LT"));
+        //readWorkSheetTH(workbook, nameSheetTH);
+        readWorkSheetTH(workbook.getSheet("TKB TH"));
 
         printInfo("Done Load Source!");
     }
-    private void readWorkSheetLT(XSSFWorkbook workbook, String nameSheet){
+    /*private void readWorkSheetLT(XSSFWorkbook workbook, String nameSheet){
         XSSFSheet sheet = workbook.getSheet(nameSheet);
 
         Iterator<Row> rows = sheet.rowIterator();
-        int[] indexCell = new int[]{1,2,3,7, 10,11}; // Theo định dạng file excel của UIT thì mảng trên tương ứng với các cột
-        while(rows.hasNext()){                    // Mã MH, Mã Lớp, Tên Môn Học, số TC, Thứ, Tiết
+        int[] indexCell = new int[]{1,2,3,5, 7, 10,11}; // Theo định dạng file excel của UIT thì mảng trên tương ứng với các cột
+                                                        // // Mã MH, Mã Lớp, Tên Môn Học, Tên giảng viên, số TC, Thứ, Tiết
+        Map<String, Integer> indexColunm = getAllIndexColunm(sheet);
+        while(rows.hasNext()){
             Row row = rows.next();
             String[] result = readRow(row, indexCell);
 
@@ -118,11 +124,11 @@ public class Main {
                 hauTo = "NONE";        // là môn học chung cho tất cả các ngành => không có hậu tố
             else hauTo = splitIdClass[2];
 
-            if(! hauToList.contains(hauTo))
+            if(! suffixChosenList.contains(hauTo))
                 continue;
 
-            String dateOfWork = result[4];
-            String time = result[5];
+            String dateOfWork = result[5];
+            String time = result[6];
             Lesson lesson = new Lesson(dateOfWork, time);
 
             boolean isExistClass = false;
@@ -134,34 +140,106 @@ public class Main {
                 }
 
             if(!isExistClass) {
-                Subject subject = new Subject(idClass, lesson);
-                subject.setTc_lt(Integer.parseInt(result[3])); // set tc lt ở đây vì trong trường hợp 1 môn có nhiều lớp lt thì chỉ thêm 1 lần
+                Subject subject = new Subject(idClass, result[2], result[3] ,lesson);
+                subject.setTc_lt(Integer.parseInt(result[4])); // set tc lt ở đây vì trong trường hợp 1 môn có nhiều lớp lt thì chỉ thêm 1 lần
+                listSubject.add(subject);
+            }
+        }
+    }*/
+    private void readWorkSheetLT(XSSFSheet sheet){
+
+        Map<String, Integer> indexColunm = getAllIndexColunm(sheet);
+
+        Iterator<Row> rows = sheet.rowIterator();
+        while(rows.hasNext()){
+            Row row = rows.next();
+            String[] result = readRow(row);
+
+            String idSubject = result[indexColunm.get("MÃ MH")];
+            ArrayList<Subject> listSubject = (ArrayList<Subject>) sourceMap.get(idSubject);
+            if(listSubject == null) continue; // id mon hoc khong nam trong danh sach yeu cau
+
+            String idClass = result[indexColunm.get("MÃ LỚP")];
+            String hauTo = "";
+            String[] splitIdClass = idClass.split("\\.");
+            if(splitIdClass.length < 3)// theo như định dạng mã lớp học của UIT thì nếu mã môn hoc chỉ có 2 thành phần
+                hauTo = "NONE";        // là môn học chung cho tất cả các ngành => không có hậu tố
+            else hauTo = splitIdClass[2];
+
+            if(! suffixChosenList.contains(hauTo))
+                continue;
+
+            String dateOfWork = result[indexColunm.get("THỨ")];
+            String time = result[indexColunm.get("TIẾT")];
+            Lesson lesson = new Lesson(dateOfWork, time);
+
+            boolean isExistClass = false;
+            for(Subject subject : listSubject) // Thêm lesson vào môn học nếu môn học tồn tại
+                if(subject.idClass.equals(idClass)) {
+                    subject.addLessonLT(lesson);
+                    isExistClass = true;
+                    break;
+                }
+
+            if(!isExistClass) {
+                Subject subject = new Subject(idClass, result[indexColunm.get("TÊN MÔN HỌC")], result[indexColunm.get("TÊN GIẢNG VIÊN")] ,lesson);
+                subject.setTc_lt(Integer.parseInt(result[indexColunm.get("SỐ TC")])); // set tc lt ở đây vì trong trường hợp 1 môn có nhiều lớp lt thì chỉ thêm 1 lần
                 listSubject.add(subject);
             }
         }
     }
-    private void readWorkSheetTH(XSSFWorkbook workbook, String nameSheet){
+    /*private void readWorkSheetTH(XSSFWorkbook workbook, String nameSheet){
         XSSFSheet sheet = workbook.getSheet(nameSheet);
 
         Iterator<Row> rows = sheet.rowIterator();
-        int[] indexCell = new int[]{1,2,3,7,10,11}; // Theo định dạng file excel của UIT thì mảng trên tương ứng với các cột
-        while(rows.hasNext()){                    // Mã MH, Mã Lớp, Tên Môn Học, số TC, Thứ, Tiết
+        int[] indexCell = new int[]{1,2,3,5,7,10,11}; // Theo định dạng file excel của UIT thì mảng trên tương ứng với các cột
+        while(rows.hasNext()){                    // Mã MH, Mã Lớp, Tên Môn Học, Tên giảng viên, số TC, Thứ, Tiết
             Row row = rows.next();
             String[] result = readRow(row, indexCell);
-
             String idSubject = result[0] ;
             ArrayList<Subject> listSubject = (ArrayList<Subject>) sourceMap.get(idSubject);
             if(listSubject == null) continue; // id môn học đàn xét không nằm trong danh sách lớp yêu cầu
 
             String idClassTH = result[1];
-            String dateOfWork = result[4];
-            String time = result[5];
+            String lecturerTh = result[3];
+            String dateOfWork = result[5];
+            String time = result[6];
             Lesson lesson = new Lesson(dateOfWork, time);
 
             String idClassLT = idClassTH.substring(0, idClassTH.length()-2);
             for(Subject subject : listSubject) { // Thêm lớp thực hành trương ứng với lớp lý thuyết đã yêu cầu
                 if (subject.idClass.equals(idClassLT)) {
-                    subject.setTc_th(Integer.parseInt(result[3]));
+                    subject.setLecturer_th(lecturerTh);
+                    subject.setTc_th(Integer.parseInt(result[4]));
+                    subject.addLessonTH(lesson);
+                    break;
+                }
+
+            }
+        }
+    }*/
+    private void readWorkSheetTH(XSSFSheet sheet){
+        Map<String, Integer> indexColunm = getAllIndexColunm(sheet);
+
+        Iterator<Row> rows = sheet.rowIterator();
+        while(rows.hasNext()){
+            Row row = rows.next();
+            String[] result = readRow(row);
+            String idSubject = result[indexColunm.get("MÃ MH")] ;
+            ArrayList<Subject> listSubject = (ArrayList<Subject>) sourceMap.get(idSubject);
+            if(listSubject == null) continue; // id môn học đàn xét không nằm trong danh sách lớp yêu cầu
+
+            String idClassTH = result[indexColunm.get("MÃ LỚP")];
+            String lecturerTh = result[indexColunm.get("TÊN TRỢ GIẢNG")];
+            String dateOfWork = result[indexColunm.get("THỨ")];
+            String time = result[indexColunm.get("TIẾT")];
+            Lesson lesson = new Lesson(dateOfWork, time);
+
+            String idClassLT = idClassTH.substring(0, idClassTH.length()-2);
+            for(Subject subject : listSubject) { // Thêm lớp thực hành trương ứng với lớp lý thuyết đã yêu cầu
+                if (subject.idClass.equals(idClassLT)) {
+                    subject.setLecturer_th(lecturerTh);
+                    subject.setTc_th(Integer.parseInt(result[indexColunm.get("SỐ TC")]));
                     subject.addLessonTH(lesson);
                     break;
                 }
@@ -169,11 +247,27 @@ public class Main {
             }
         }
     }
-    String[] readRow(Row row, int[] cells){
+    private Map<String, Integer> getAllIndexColunm(XSSFSheet sheet) { // Trả về 1 map có dạng <"Tên Cột", chỉ số cột tương ứng trong file excel>
+        Map<String, Integer> columnName_index = new HashMap<>();
+
+        XSSFRow headerRow = sheet.getRow(0);
+        short beginIndex = headerRow.getFirstCellNum();
+        short lastIndex = headerRow.getLastCellNum();
+        for(int i = beginIndex; i < lastIndex; ++i){
+
+            XSSFCell cell = headerRow.getCell(i);
+            columnName_index.put(cell.getStringCellValue(), cell.getColumnIndex());
+        }
+
+        return columnName_index;
+    }
+/*    String[] readRow(Row row, int[] cells){
         String[] result = new String[cells.length];
 
         for(int i=0; i<cells.length; i++){
             Cell c = row.getCell(cells[i]);
+            if(c==null)
+                return result;
             CellType type = c.getCellType();
 
             switch (type){
@@ -191,6 +285,33 @@ public class Main {
         }
 
         return result;
+    }*/
+
+    String[] readRow(Row row){
+
+        String[] value = new String[row.getLastCellNum()];
+
+        for(int i=0; i<value.length; i++){
+            Cell c = row.getCell(i);
+            if(c==null)
+                break;
+            CellType type = c.getCellType();
+
+            switch (type){
+                case _NONE: case BLANK: value[i] = ""; break;
+                case BOOLEAN: value[i] = String.valueOf(c.getBooleanCellValue());  break;
+                case NUMERIC:  value[i] = String.valueOf((int)c.getNumericCellValue()); break;
+                case STRING: value[i] = c.getStringCellValue(); break;
+                case ERROR: value[i] = "!"; break;
+                case FORMULA:
+                    FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+                    // In ra giá trị từ công thức
+                    value[i] = String.valueOf((int)evaluator.evaluate(c).getNumberValue());
+                    break;
+            }
+        }
+
+        return value;
     }
 
     void loadLelfPanel(){
@@ -280,7 +401,7 @@ public class Main {
         return scroll;
     }
     Box educationProgramBox(){
-        hauToList = new ArrayList<String>();
+        suffixChosenList = new ArrayList<String>();
         String[] checkboxsName = new String[]{"ATCL", "ANTN", "ANTT", "CNCL",
                 "CTTT", "HTCL", "MTCL", "MMCL",
                 "PMCL", "KHCL", "KHBC", "TMCL", "NONE"};
@@ -318,7 +439,7 @@ public class Main {
         JPanel panel = new JPanel();
 
         JTextArea listClassArea = new JTextArea();
-        listClassArea.setFont(new Font("arial", Font.LAYOUT_LEFT_TO_RIGHT, 14));
+        listClassArea.setFont(new Font("arial", Font.LAYOUT_LEFT_TO_RIGHT, 15));
         listClassArea.setEditable(false);
         listClassArea.setText("Tổng tín chỉ: " + tkb.getSoTC() + '\n');
 
@@ -402,10 +523,10 @@ public class Main {
             String name = checkBox.getText();
 
             if(checkBox.isSelected()) {
-                hauToList.add(name);
+                suffixChosenList.add(name);
             }
             else{
-                hauToList.remove(name);
+                suffixChosenList.remove(name);
             }
         }
     }
@@ -479,7 +600,7 @@ public class Main {
 
             if(isValidSubjectList(subjectList)){
                 String name = String.format("Sheet_%d", tkbList.size()+1);
-                TKB tkb = new TKB(frame, name, (ArrayList<Subject>) subjectList.clone());
+                TKB tkb = new TKB(name, (ArrayList<Subject>) subjectList.clone());
                 tkbList.add(tkb);
             }
 
@@ -506,13 +627,31 @@ public class Main {
         ArrayList<Lesson> lessonsLTSubject2 = subject2.getLessonLT();
 
         ArrayList<Lesson> lessons = new ArrayList<Lesson>();
-        lessons.addAll(subject1.getLessonLT());
-        lessons.addAll(subject2.getLessonLT());
+        /*lessons.addAll(subject1.getLessonLT());
+        lessons.addAll(subject2.getLessonLT());*/
 
-        if(subject1.getLessonTH() != null)
-            lessons.add(subject1.getLessonTH().get(0));
-        if(subject2.getLessonTH() != null)
-            lessons.add(subject2.getLessonTH().get(0));
+        if(subject1.getLessonLT() != null) {
+            Lesson temp = subject1.getLessonLT().get(0);
+            if(temp.getDateOfWeek() != -1)
+                lessons.add(temp);
+        }
+
+        if(subject2.getLessonLT() != null) {
+            Lesson temp = subject2.getLessonLT().get(0);
+            if(temp.getDateOfWeek() != -1)
+                lessons.add(temp);
+        }
+
+        if(subject1.getLessonTH() != null) {
+            Lesson temp = subject1.getLessonTH().get(0);
+            if(temp.getDateOfWeek() != -1)
+                lessons.add(temp);
+        }
+        if(subject2.getLessonTH() != null) {
+            Lesson temp = subject2.getLessonTH().get(0);
+            if(temp.getDateOfWeek() != -1)
+                lessons.add(temp);
+        }
 
         if(isCollapseLesson(lessons))
             return true;

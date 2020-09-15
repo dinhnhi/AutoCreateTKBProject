@@ -3,6 +3,9 @@ import java.util.ArrayList;
 public class Subject {
     String idClass;
     String name;
+    String lecturer;
+    String lecturer_lt;
+    String lecturer_th;
     int tc_lt = 0; // tín chỉ lý thuyết
     int tc_th = 0; // tín chỉ thực hành
 
@@ -11,15 +14,24 @@ public class Subject {
 
     public Subject(){
     }
-    public Subject(String idClass_, /*String name_, String lecturer_,*/
+    public Subject(String idClass_, String name_, String lecturer_,
                    Lesson lesson_){
         idClass = idClass_;
-        //name = name_;
-        //lecturer = lecturer_;
-        //lesson = lesson_;
+        name = name_;
+        lecturer = lecturer_;
         addLessonLT(lesson_);
 
     }
+
+    public Subject(String idClass_, String name_, String lecturer_lt, String lecturer_th,
+                   Lesson lesson_){
+        idClass = idClass_;
+        name = name_;
+        this.lecturer_lt = lecturer_lt;
+        this.lecturer_th = lecturer_th;
+        addLessonLT(lesson_);
+    }
+
     public Subject(String idClass_, String name_){
         idClass=idClass_;
         name = name_;
@@ -38,6 +50,9 @@ public class Subject {
             lessonTH = new ArrayList<Lesson>();
         lessonTH.add(lesson);
     }
+
+    public void setLecturer_lt(String lt){lecturer_lt = lt;}
+    public void setLecturer_th(String th){lecturer_th = th;}
 
     public void setTc_lt(int soTC){
         tc_lt = soTC;
