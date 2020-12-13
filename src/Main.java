@@ -94,65 +94,23 @@ public class Main {
 
         // readWorkSheetLT phải gọi trước readWorkSheetTH
         // vì danh sách lớp học thực hành lấy từ hàm readWorkSheetTH
-        // dựa trên danh sách lớp học lý thuyết lấy từ hàm readWorkSheetLT
-        //readWorkSheetLT(workbook, nameSheetLT);
+        // được dựa trên danh sách lớp học lý thuyết lấy từ hàm readWorkSheetLT
+
         readWorkSheetLT(workbook.getSheet("TKB LT"));
-        //readWorkSheetTH(workbook, nameSheetTH);
         readWorkSheetTH(workbook.getSheet("TKB TH"));
 
         printInfo("Done Load Source!");
     }
-    /*private void readWorkSheetLT(XSSFWorkbook workbook, String nameSheet){
-        XSSFSheet sheet = workbook.getSheet(nameSheet);
 
-        Iterator<Row> rows = sheet.rowIterator();
-        int[] indexCell = new int[]{1,2,3,5, 7, 10,11}; // Theo định dạng file excel của UIT thì mảng trên tương ứng với các cột
-                                                        // // Mã MH, Mã Lớp, Tên Môn Học, Tên giảng viên, số TC, Thứ, Tiết
-        Map<String, Integer> indexColunm = getAllIndexColunm(sheet);
-        while(rows.hasNext()){
-            Row row = rows.next();
-            String[] result = readRow(row, indexCell);
-
-            String idSubject = result[0] ;
-            ArrayList<Subject> listSubject = (ArrayList<Subject>) sourceMap.get(idSubject);
-            if(listSubject == null) continue; // id mon hoc khong nam trong danh sach yeu cau
-
-            String idClass = result[1];
-            String hauTo = "";
-            String[] splitIdClass = idClass.split("\\.");
-            if(splitIdClass.length < 3)// theo như định dạng mã lớp học của UIT thì nếu mã môn hoc chỉ có 2 thành phần
-                hauTo = "NONE";        // là môn học chung cho tất cả các ngành => không có hậu tố
-            else hauTo = splitIdClass[2];
-
-            if(! suffixChosenList.contains(hauTo))
-                continue;
-
-            String dateOfWork = result[5];
-            String time = result[6];
-            Lesson lesson = new Lesson(dateOfWork, time);
-
-            boolean isExistClass = false;
-            for(Subject subject : listSubject) // Thêm lesson vào môn học nếu môn học tồn tại
-                if(subject.idClass.equals(idClass)) {
-                    subject.addLessonLT(lesson);
-                    isExistClass = true;
-                    break;
-                }
-
-            if(!isExistClass) {
-                Subject subject = new Subject(idClass, result[2], result[3] ,lesson);
-                subject.setTc_lt(Integer.parseInt(result[4])); // set tc lt ở đây vì trong trường hợp 1 môn có nhiều lớp lt thì chỉ thêm 1 lần
-                listSubject.add(subject);
-            }
-        }
-    }*/
     private void readWorkSheetLT(XSSFSheet sheet){
 
         Map<String, Integer> indexColunm = getAllIndexColunm(sheet);
 
         Iterator<Row> rows = sheet.rowIterator();
+        rows.next(); // pass header row
         while(rows.hasNext()){
             Row row = rows.next();
+            System.out.println(row.getRowNum());
             String[] result = readRow(row);
 
             String idSubject = result[indexColunm.get("MÃ MH")];
@@ -188,36 +146,7 @@ public class Main {
             }
         }
     }
-    /*private void readWorkSheetTH(XSSFWorkbook workbook, String nameSheet){
-        XSSFSheet sheet = workbook.getSheet(nameSheet);
 
-        Iterator<Row> rows = sheet.rowIterator();
-        int[] indexCell = new int[]{1,2,3,5,7,10,11}; // Theo định dạng file excel của UIT thì mảng trên tương ứng với các cột
-        while(rows.hasNext()){                    // Mã MH, Mã Lớp, Tên Môn Học, Tên giảng viên, số TC, Thứ, Tiết
-            Row row = rows.next();
-            String[] result = readRow(row, indexCell);
-            String idSubject = result[0] ;
-            ArrayList<Subject> listSubject = (ArrayList<Subject>) sourceMap.get(idSubject);
-            if(listSubject == null) continue; // id môn học đàn xét không nằm trong danh sách lớp yêu cầu
-
-            String idClassTH = result[1];
-            String lecturerTh = result[3];
-            String dateOfWork = result[5];
-            String time = result[6];
-            Lesson lesson = new Lesson(dateOfWork, time);
-
-            String idClassLT = idClassTH.substring(0, idClassTH.length()-2);
-            for(Subject subject : listSubject) { // Thêm lớp thực hành trương ứng với lớp lý thuyết đã yêu cầu
-                if (subject.idClass.equals(idClassLT)) {
-                    subject.setLecturer_th(lecturerTh);
-                    subject.setTc_th(Integer.parseInt(result[4]));
-                    subject.addLessonTH(lesson);
-                    break;
-                }
-
-            }
-        }
-    }*/
     private void readWorkSheetTH(XSSFSheet sheet){
         Map<String, Integer> indexColunm = getAllIndexColunm(sheet);
 
@@ -261,31 +190,6 @@ public class Main {
 
         return columnName_index;
     }
-/*    String[] readRow(Row row, int[] cells){
-        String[] result = new String[cells.length];
-
-        for(int i=0; i<cells.length; i++){
-            Cell c = row.getCell(cells[i]);
-            if(c==null)
-                return result;
-            CellType type = c.getCellType();
-
-            switch (type){
-                case _NONE: case BLANK: result[i] = ""; break;
-                case BOOLEAN: result[i] = String.valueOf(c.getBooleanCellValue());  break;
-                case NUMERIC:  result[i] = String.valueOf((int)c.getNumericCellValue()); break;
-                case STRING: result[i] = c.getStringCellValue(); break;
-                case ERROR: result[i] = "!"; break;
-                case FORMULA:
-                    FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-                    // In ra giá trị từ công thức
-                    result[i] = String.valueOf((int)evaluator.evaluate(c).getNumberValue());
-                    break;
-            }
-        }
-
-        return result;
-    }*/
 
     String[] readRow(Row row){
 
@@ -481,7 +385,7 @@ public class Main {
         panel.updateUI();
     }
 
-    public class FileItemActionListener implements ActionListener{
+    private class FileItemActionListener implements ActionListener{
         JMenuItem otherItem;
         public FileItemActionListener(JMenuItem item){
             otherItem = item;
@@ -499,7 +403,7 @@ public class Main {
             }
         }
     }
-    public class SourceItemActionListen implements ActionListener{
+    private class SourceItemActionListen implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
             JFileChooser openSource = new JFileChooser();
@@ -516,7 +420,7 @@ public class Main {
             }
         }
     }
-    public class CheckBoxActionListener implements ActionListener{
+    private class CheckBoxActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
             JCheckBox checkBox = (JCheckBox)(e.getSource());
@@ -530,7 +434,7 @@ public class Main {
             }
         }
     }
-    public class ComboBoxActionListener implements ActionListener{
+    private class ComboBoxActionListener implements ActionListener{
         @Override
         public void actionPerformed(ActionEvent e) {
             JComboBox comboBox = (JComboBox)(e.getSource());
@@ -732,7 +636,7 @@ public class Main {
 
     }
 
-    public class SortByDayOff implements Comparator<TKB>{
+    private class SortByDayOff implements Comparator<TKB>{
 
         @Override
         public int compare(TKB o1, TKB o2) {
@@ -743,7 +647,7 @@ public class Main {
         }
     }
 
-    public class SortByMorningBreak implements Comparator<TKB>{
+    private class SortByMorningBreak implements Comparator<TKB>{
         @Override
         public int compare(TKB o1, TKB o2) {
             Integer s1 = o1.getSumBreakMorning();
@@ -752,7 +656,7 @@ public class Main {
             return s2.compareTo(s1);
         }
     }
-    public class SortByAfternoonBreak implements Comparator<TKB>{
+    private class SortByAfternoonBreak implements Comparator<TKB>{
 
         @Override
         public int compare(TKB o1, TKB o2) {
@@ -762,7 +666,7 @@ public class Main {
             return s2.compareTo(s1);
         }
     }
-    public class SortByAllBreak implements Comparator<TKB>{
+    private class SortByAllBreak implements Comparator<TKB>{
 
         @Override
         public int compare(TKB o1, TKB o2) {

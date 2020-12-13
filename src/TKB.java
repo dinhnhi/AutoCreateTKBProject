@@ -1,5 +1,11 @@
+import org.apache.poi.ss.usermodel.Cell;
+
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.util.ArrayList;
 
@@ -25,35 +31,43 @@ public class TKB extends JPanel {
     public TKB(){
         this.setLayout(new GridLayout(2, 1));
 
+        // other info table
         DefaultTableModel tableModel = new DefaultTableModel();
-        otherInfoTable = new JTable(tableModel);
-        otherInfoTable.getTableHeader().setFont(new Font("arial", Font.BOLD, 13));
         tableModel.addColumn("Danh sách các môn học không có lịch học chính thức");
-        otherInfoTable.setRowHeight(100);
+        otherInfoTable = new JTable(tableModel);
+        otherInfoTable.getTableHeader().setFont(new Font("arial", Font.BOLD, 10));
+        otherInfoTable.setRowHeight(40);
+        otherInfoTable.setPreferredScrollableViewportSize(new Dimension(300, 80));
+        JScrollPane scrollInfoTable = new JScrollPane(otherInfoTable);
 
+        // Table for schedule
         String[] columnName = new String[]{"Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"};
         ml = new AttributiveCellTableModel(new Object[11][6], columnName);
         MultiSpanCellTable table = new MultiSpanCellTable(ml);
         JTable jtable = (JTable)table;
-        jtable.getTableHeader().setFont(new Font("arial", Font.BOLD, 13));
+        jtable.getTableHeader().setFont(new Font("arial", Font.BOLD, 10));
+        jtable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        jtable.setFillsViewportHeight(true);
         jtable.setRowHeight(40);
 
+        for(int col = 0; col < jtable.getColumnCount(); ++col){
+            TableColumn column = jtable.getColumnModel().getColumn(col);
+
+            column.setMinWidth(100);
+            column.setMaxWidth(100);
+            column.setPreferredWidth(100);
+        }
+
+        // make jscollpanel auto fit to jtable size
+        jtable.setPreferredScrollableViewportSize(jtable.getPreferredSize());
         JScrollPane scrollTable = new JScrollPane(jtable);
-        int hightHeader = jtable.getTableHeader().getPreferredSize().height;
-        scrollTable.setPreferredSize(new Dimension(5*210,
-                jtable.getRowHeight()*11 + hightHeader + 14)); // số 14 ở đây là cộng vô thêm cho nó table vừa với scroll
 
         // Căn giữa nội dung trong các cell của bảng
-        DefaultTableCellRenderer centerRenderer= new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        centerRenderer.setVerticalAlignment(SwingConstants.CENTER);
-        for(int i=0; i < jtable.getColumnCount(); ++i)
-            jtable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        for(int i=0; i<otherInfoTable.getColumnCount(); ++i)
-            otherInfoTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        MultiLineTableCellRender center = new MultiLineTableCellRender();
+        jtable.setDefaultRenderer(Object.class, center);
+        otherInfoTable.setDefaultRenderer(Object.class, center);
 
-        JScrollPane scrollInfoTable = new JScrollPane(otherInfoTable);
-        scrollInfoTable.setPreferredSize(new Dimension(500, 300));
+
         JPanel tempOtherInfoPanel = new JPanel();
         tempOtherInfoPanel.add(scrollInfoTable);
 
@@ -165,6 +179,7 @@ public class TKB extends JPanel {
         for(int i=0; i<listSubject.size(); ++i){
             Subject subject = listSubject.get(i);
 
+
             listClass.add(subject.getIdClass());
 
             if(subject.getLessonTH() != null) { // tat ca lop thuc hanh cua 1 mon thì cung tiet => chi ve 1 cai
@@ -201,8 +216,8 @@ public class TKB extends JPanel {
             int[] rows = lesson.getTime().clone();
 
             if(lesson.getDateOfWeek() == -1){
-                String html = toHtml(name);
-                addInfo(otherInfoTable, html);
+                String str = arrayToString(name);
+                addInfo(otherInfoTable, str);
                 return;
             }
 
@@ -211,8 +226,8 @@ public class TKB extends JPanel {
                 rows[j] = (value > 0 && value < 6) ? value - 1 : value;
             }
 
-            String html = toHtml(name);
-            ml.setValueAt(html, rows[0], column);
+            String str = arrayToString(name);
+            ml.setValueAt(str, rows[0], column);
             cellAt.combine(rows, new int[]{column});
     }
 
@@ -221,12 +236,60 @@ public class TKB extends JPanel {
         tableModel.addRow(new Object[]{str});
     }
 
-    private String toHtml(String[] list){
+    private void centerCellTable(JTable table){
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        table.setDefaultRenderer(String.class, centerRenderer);
+    }
+
+    public class MultiLineTableCellRender extends JTextPane implements TableCellRenderer{
+
+        public MultiLineTableCellRender() {
+
+            StyledDocument doc = getStyledDocument();
+            SimpleAttributeSet center = new SimpleAttributeSet();
+            StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER);
+            doc.setParagraphAttributes(0, doc.getLength(), center, false);
+        }
+
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            if (isSelected) {
+                setForeground(table.getSelectionForeground());
+                setBackground(table.getSelectionBackground());
+            } else {
+                setForeground(table.getForeground());
+                setBackground(table.getBackground());
+            }
+            setFont(table.getFont());
+            if (hasFocus) {
+                setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+                if (table.isCellEditable(row, column)) {
+                    setForeground(UIManager.getColor("Table.focusCellForeground"));
+                    setBackground(UIManager.getColor("Table.focusCellBackground"));
+                }
+            } else {
+                setBorder(new EmptyBorder(1, 2, 1, 2));
+            }
+            setText((value == null) ? "" : value.toString());
+            return this;
+        }
+    }
+
+    String arrayToString(String[] arr){
+        String str = String.join("\n", arr);
+                return str;
+    }
+
+/*    private String toHtml(String[] list){
         String data = String.join("<br>", list);
+        data += "<br>.<br>";
+
         String html = "<html>"+
                 "<style>" +
-                "body {font-family: Arial, sans-serif;" +
-                "font-size: 13px;" +
+                "body {font-family: Arial;" +
+                "font-size: 10px;" +
                 "text-align: center;}" +
                 "</style>" +
                 "<body>" +
@@ -234,7 +297,7 @@ public class TKB extends JPanel {
                 "</body>" +
                 "</html>";
         return html;
-    }
+    }*/
 
     static final int SUM_BREAK_ALLDAY = 0;
     static final int SUM_BREAK_MORNING = 1;
